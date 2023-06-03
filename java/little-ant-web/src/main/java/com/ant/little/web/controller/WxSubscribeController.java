@@ -11,6 +11,7 @@ import com.ant.little.web.vo.WxMsgVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -74,6 +75,9 @@ public class WxSubscribeController {
         wxSubMsgDTO.setLongitude(wxMsgVO.Longitude);
         wxSubMsgDTO.setPrecision(wxMsgVO.Precision);
         wxSubMsgDTO.setWxOpenId(httpServletRequest.getHeader("x-wx-from-openid"));
+        if(StringUtils.isEmpty(wxSubMsgDTO.getWxOpenId())){
+            wxSubMsgDTO.setWxOpenId(httpServletRequest.getHeader("x-wx-openid"));
+        }
         wxSubMsgDTO.setWxSource(httpServletRequest.getHeader("x-wx-source"));
         wxSubMsgDTO.setRealIp(httpServletRequest.getHeader("x-real-ip"));
         wxSubMsgDTO.setWxAppid(httpServletRequest.getHeader("x-wx-appid"));
