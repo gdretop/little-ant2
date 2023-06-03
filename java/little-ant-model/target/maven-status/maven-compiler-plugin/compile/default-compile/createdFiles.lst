@@ -1,0 +1,5 @@
+com/ant/little/model/dto/WxUserDTO.class
+com/ant/little/model/dto/WxSubMsgResponseDTO.class
+com/ant/little/model/dto/WxSubMsgDTO.class
+com/ant/little/model/dto/RequestLogDTO.class
+com/ant/little/model/dto/CounterRequest.class

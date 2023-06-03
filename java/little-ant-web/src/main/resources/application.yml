@@ -1,0 +1,28 @@
+server:
+  port: 80
+app:
+  dir:
+    log: /home/root/logs
+# 日志配置
+#logging:
+#  #日志文件
+#  file:
+#    #使用相对路径,就会在项目根目录下生成一个info.log文件
+#    name: ${app.dir.log}/little-ant.log
+#  #日志级别 root表示所有包，也可以单独配置具体包 fatal error warn info debug trace off
+#  level:
+#    root: info
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_ADDRESS}/${MYSQL_DATABASE:springboot_demo}
+    username: ${MYSQL_USERNAME}
+    password: ${MySQL_PASSWORD}
+  mvc:
+    view:
+      suffix: .html
+      prefix: /
+
+mybatis:
+  mapper-locations: classpath*:mapper/*Mapper.xml

@@ -1,0 +1,58 @@
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
+<!--<!DOCTYPE generatorConfiguration-->
+<!--        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"-->
+<!--        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">-->
+<!--<generatorConfiguration>-->
+<!--    <properties resource="mybatis-generator/generator.properties"/>-->
+<!--    &lt;!&ndash;    注释掉&ndash;&gt;-->
+<!--    &lt;!&ndash;    <classPathEntry location="${driverLocation}"/>&ndash;&gt;-->
+
+<!--    <context id="DB2Tables" targetRuntime="MyBatis3">-->
+<!--        <commentGenerator>-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 true：是 ： false:否 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="true"/>-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash;数据库连接参数 &ndash;&gt;-->
+<!--        <jdbcConnection-->
+<!--                driverClass="${driverClassName}"-->
+<!--                connectionURL="${url}"-->
+<!--                userId="${username}"-->
+<!--                password="${password}">-->
+<!--        </jdbcConnection>-->
+
+<!--        <javaTypeResolver>-->
+<!--            <property name="forceBigDecimals" value="false"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 实体类的包名和存放路径 &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.ant.little.core.domain" targetProject="src/main/java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成映射文件*.xml的位置&ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="mapper" targetProject="src/main/resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成DAO的包名和位置 &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.ant.little.core.dao" targetProject="src/main/java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; tableName：数据库中的表名或视图名；domainObjectName：生成的实体类的类名&ndash;&gt;-->
+<!--&lt;!&ndash;        <table tableName="request_log" domainObjectName="RequestLogDO">&ndash;&gt;-->
+<!--&lt;!&ndash;            <columnOverride column="request_info" javaType="java.lang.String" jdbcType="VARCHAR" />&ndash;&gt;-->
+<!--&lt;!&ndash;            <columnOverride column="response_info" javaType="java.lang.String" jdbcType="VARCHAR" />&ndash;&gt;-->
+<!--&lt;!&ndash;        </table>&ndash;&gt;-->
+<!--&lt;!&ndash;        <table tableName="wx_user" schema="springboot_demo" domainObjectName="WxUserDO"/>&ndash;&gt;-->
+<!--&lt;!&ndash;        <table tableName="wx_user" schema="springboot_demo" domainObjectName="WxUserDO"/>&ndash;&gt;-->
+
+<!--&lt;!&ndash;        <table tableName="member_config" schema="springboot_demo" domainObjectName="MemberConfigDO"/>&ndash;&gt;-->
+<!--        <table tableName="member_info" schema="springboot_demo" domainObjectName="MemberInfoDO"/>-->
+<!--&lt;!&ndash;        <table tableName="request_counter" schema="springboot_demo" domainObjectName="RequestCounterDO"/>&ndash;&gt;-->
+
+<!--    </context>-->
+<!--</generatorConfiguration>-->

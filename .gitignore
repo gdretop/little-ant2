@@ -1,0 +1,70 @@
+*~
+.idea/
+.idea/**
+logs/
+files/
+files/**
+python/venv
+python/venv/**
+*.class
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+.idea/compiler.xml
+.idea/encodings.xml
+.idea/*
+*.iws
+**/*.iml
+*.iml
+*.ipr
+
+nohup.out
+*.log
+*.log.*
+*.snapshot.*
+*.cache
+.DS_Store
+.settings/
+/hsf.configuration/
+logs
+
+*.bak
+*/hsf
+*.pid
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+#JRebel
+*rebel.xml*
+*/coverage-report
+
+
+# .gitignore for maven
+*.releaseBackup
+
+# web application files
+#/web-app/WEB-INF
+
+# IDE support files
+/.classpath
+/.launch
+/.project
+/.settings
+/*.launch
+/*.tmproj
+/ivy*
+/eclipse
+#python/manual_test/**
+#python/manual_test/*
