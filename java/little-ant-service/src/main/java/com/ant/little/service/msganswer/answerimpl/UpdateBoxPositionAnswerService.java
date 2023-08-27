@@ -100,12 +100,12 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
             keyConfigDTO.setType(KeyConfigTypeEnum.JIANG_SI_FANG_XIAN.name());
         } else if (wxSubMsgDTO.getContent().contains("末日空袭")) {
             keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_KONG_XI.name());
-        }
-        if (wxSubMsgDTO.getContent().contains("末日枪神")) {
+        } else if (wxSubMsgDTO.getContent().contains("末日枪神")) {
             keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_QIANG_SHENG.name());
         } else {
             keyConfigDTO.setType(KeyConfigTypeEnum.MORI_GAME.name());
         }
+        keyConfigDTO.setKey(KeyConfigKeyEnum.BOX_POSITION.name());
         int[][] result = dataCheck(wxSubMsgDTO.getContent());
         String content = "";
         for (int i = 0; i < 4; i++) {
@@ -118,5 +118,9 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
         keyConfigService.insert(keyConfigDTO);
         wxSubMsgResponseDTO.setContent("更新成功");
         return Response.newSuccess(wxSubMsgResponseDTO);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("更新宝箱坐标僵尸防线".contains("僵尸防线"));
     }
 }
