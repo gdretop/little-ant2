@@ -8,6 +8,7 @@ python/venv
 python/venv/**
 *.class
 target/
+target/**
 !.mvn/wrapper/maven-wrapper.jar
 
 ### STS ###
