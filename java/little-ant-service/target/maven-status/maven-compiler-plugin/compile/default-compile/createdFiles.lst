@@ -1,12 +1,13 @@
 com/ant/little/service/msganswer/MsgAnswerBaseService.class
 com/ant/little/service/msganswer/answerimpl/MoriGameFindPathAnswerService.class
-com/ant/little/service/msganswer/answerimpl/MoriGameBestWayAnswerService.class
 com/ant/little/service/findmap/FindMapWayUtil$BestResult.class
 com/ant/little/service/store/RequestLogService.class
-com/ant/little/service/msganswer/MsgAnswerRouter.class
 com/ant/little/service/findmap/FindMapWayUtil$1.class
 com/ant/little/service/store/WxUserService.class
 com/ant/little/service/store/CounterService.class
+com/ant/little/service/msganswer/answerimpl/MoriGameBestWayAnswerService.class
+com/ant/little/service/msganswer/MsgAnswerRouter.class
 com/ant/little/service/findmap/FindMapWayUtil.class
+com/ant/little/service/msganswer/answerimpl/UpdateBoxPositionAnswerService.class
 com/ant/little/service/store/impl/CounterServiceImpl.class
 com/ant/little/service/msganswer/answerimpl/SubscribeService.class

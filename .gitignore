@@ -10,7 +10,7 @@ python/venv/**
 target/
 target/**
 *target/*
-
+*target/
 !.mvn/wrapper/maven-wrapper.jar
 
 ### STS ###
