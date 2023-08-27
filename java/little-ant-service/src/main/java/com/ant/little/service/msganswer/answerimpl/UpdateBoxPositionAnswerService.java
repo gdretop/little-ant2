@@ -95,7 +95,17 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
         KeyConfigDTO keyConfigDTO = new KeyConfigDTO();
         keyConfigDTO.setAppid(wxSubMsgDTO.getWxAppid());
         keyConfigDTO.setOpenId(wxSubMsgDTO.getWxOpenId());
-        keyConfigDTO.setType(KeyConfigTypeEnum.MORI_GAME.name());
+        //不同游戏现在位置不一样了
+        if (wxSubMsgDTO.getContent().contains("僵尸防线")) {
+            keyConfigDTO.setType(KeyConfigTypeEnum.JIANG_SI_FANG_XIAN.name());
+        } else if (wxSubMsgDTO.getContent().contains("末日空袭")) {
+            keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_KONG_XI.name());
+        }
+        if (wxSubMsgDTO.getContent().contains("末日枪神")) {
+            keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_QIANG_SHENG.name());
+        } else {
+            keyConfigDTO.setType(KeyConfigTypeEnum.MORI_GAME.name());
+        }
         keyConfigDTO.setKey(KeyConfigKeyEnum.BOX_POSITION.name());
         int[][] result = dataCheck(wxSubMsgDTO.getContent());
         String content = "";
