@@ -106,7 +106,6 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
         } else {
             keyConfigDTO.setType(KeyConfigTypeEnum.MORI_GAME.name());
         }
-        keyConfigDTO.setKey(KeyConfigKeyEnum.BOX_POSITION.name());
         int[][] result = dataCheck(wxSubMsgDTO.getContent());
         String content = "";
         for (int i = 0; i < 4; i++) {
