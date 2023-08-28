@@ -11,6 +11,8 @@ public enum KeyConfigTypeEnum {
     JIANG_SI_FANG_XIAN,
     MO_RI_QIANG_SHENG,
     MO_RI_KONG_XI,
+    LIE_REN_WANG,
+    NV_SHENG_WEIJI,
     VIP,
     NORMAL,
     gh_d578112e1577;
