@@ -103,9 +103,9 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
         } else if (wxSubMsgDTO.getContent().contains("末日枪神")) {
             keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_QIANG_SHENG.name());
         } else if (wxSubMsgDTO.getContent().contains("女神危机")) {
-            keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_QIANG_SHENG.name());
+            keyConfigDTO.setType(KeyConfigTypeEnum.NV_SHENG_WEIJI.name());
         } else if (wxSubMsgDTO.getContent().contains("猎人王")) {
-            keyConfigDTO.setType(KeyConfigTypeEnum.MO_RI_QIANG_SHENG.name());
+            keyConfigDTO.setType(KeyConfigTypeEnum.LIE_REN_WANG.name());
         } else {
             keyConfigDTO.setType(KeyConfigTypeEnum.MORI_GAME.name());
         }
