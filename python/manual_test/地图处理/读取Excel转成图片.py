@@ -330,7 +330,7 @@ def build_whole_map():
 
 
 trans_excel_2_png(file_path_4, '颜色地图')
-# build_whole_map()
+build_whole_map()
 # map_scale()
 # compare_2_excel()
 # print([i for i in range(-3, 4, 1)])
