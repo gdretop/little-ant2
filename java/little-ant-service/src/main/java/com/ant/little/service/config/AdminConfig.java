@@ -21,6 +21,7 @@ public class AdminConfig {
         adminList.add("oUHmw6tLdXBdki3CEVc-u-iYDEdY");
         adminList.add("o-qV15Pk_wgLCRELTYPOQJGQYlAI");
         adminList.add("o-qV15FWaxfgZl8I8eiKy0a0om9g");
+	adminList.add("oUHmw6tjHkXV4NDe_i2b0kP6RT70");
     }
 
     public boolean isAdmin(String openId) {
