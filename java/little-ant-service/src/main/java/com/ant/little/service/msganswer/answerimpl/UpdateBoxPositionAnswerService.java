@@ -48,9 +48,9 @@ public class UpdateBoxPositionAnswerService implements MsgAnswerBaseService {
         if (!wxSubMsgDTO.getContent().startsWith("更新宝箱坐标")) {
             return false;
         }
-        if (!adminConfig.isAdmin(wxSubMsgDTO.getWxOpenId())) {
-            return false;
-        }
+//        if (!adminConfig.isAdmin(wxSubMsgDTO.getWxOpenId())) {
+//            return false;
+//        }
         try {
             dataCheck(wxSubMsgDTO.getContent());
         } catch (RuntimeException e) {
