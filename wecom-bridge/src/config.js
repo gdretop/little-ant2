@@ -27,7 +27,8 @@ export const config = {
     url: process.env.TUNNEL_URL || 'ws://localhost:3000/tunnel',
     token: process.env.TUNNEL_TOKEN || 'change-me-tunnel-token',
   },
-  ngrokDomain: process.env.NGROK_DOMAIN || '',
+  // 部署后对外公开地址 (如 https://wecom.littleant.com), 仅用于启动日志提示企微后台应填的回调 URL
+  publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
 }
 
 export function validateConfig() {

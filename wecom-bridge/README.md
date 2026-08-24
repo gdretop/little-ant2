@@ -303,6 +303,12 @@ LLM_API_KEY=ollama   # 占位即可, Ollama 不需要真实鉴权
 
 > 你已确认的环境：云托管域名 `springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com`，隧道密钥 `0dabc130600246f276f16b607233f981522deeb698b5315b`。下文直接套用这两个值。
 
+> ⚠️ **企业域名备案是硬性要求（必读）**
+> 企业微信「接收消息」的回调 URL，**域名备案主体必须是你自己的企业**，不能用第三方服务商的域名。
+> 云托管默认分配的 `*.sh.run.tcloudbase.com` 是**腾讯**备案的域名 → 企微后台保存时会报
+> `该域名主体为第三方服务商，请使用企业主体域名`。**所以这步必须用自己的企业备案域名**（下面「第一步补」会讲怎么绑定 + 领免费证书）。
+> 隧道内部连接（`TUNNEL_URL`）仍走云托管域名即可，不受此限制。
+
 ### 原理
 
 ```
@@ -326,16 +332,26 @@ LLM_API_KEY=ollama   # 占位即可, Ollama 不需要真实鉴权
    |------|----|
    | `WECOM_CORPID` / `WECOM_AGENTID` / `WECOM_SECRET` | 企业微信后台拿到的（同 `.env`） |
    | `WECOM_TOKEN` / `WECOM_ENCODING_AES_KEY` | 企业微信后台拿到的（同 `.env`） |
-   | `PORT` | `3000` |
+   | `PORT` | `80` |
    | `LLM_MODE` | `tunnel` |
    | `TUNNEL_URL` | `wss://springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com/tunnel` |
    | `TUNNEL_TOKEN` | `0dabc130600246f276f16b607233f981522deeb698b5315b` |
 
-4. 部署完成后，云托管会分配固定 HTTPS 域名（即上面的 `springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com`，重启不变）。
-5. 到企业微信后台「接收消息 → 设置 API 接收」，URL 填：
+4. 部署完成后，云托管会分配固定 HTTPS 域名（即上面的 `springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com`，重启不变）。**但这个域名不能直接用于企微回调**（见顶部⚠️）。
+
+### 第一步补：绑定企业自定义域名（企微回调必须）
+
+> 前置：你需先有一个**企业主体备案**的域名（如 `wecom.littleant.com`）。没有的话先去注册 + 企业备案（腾讯云/阿里云都可，约 ¥50/年 + 备案审核几天）。这一步必须你本人做（要实名/企业资质），我无法代劳。
+
+1. 云托管控制台 → 服务设置 → **自定义域名** → 添加你的域名（如 `wecom.littleant.com`）。
+2. 按提示在 DNS 给该域名加 **CNAME**，指向云托管默认域名 `springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com`。
+3. **上传 SSL 证书**（自签名证书浏览器/企微不认，必须用真实 CA 证书）：
+   - 免费签发：`DOMAIN=wecom.littleant.com DP_Id=你的ID DP_Key=你的Key bash scripts/setup-custom-domain.sh`
+   - 产出 `certs/wecom.littleant.com/fullchain.pem` + `privkey.pem`，上传到云托管自定义域名即可。
+4. 域名生效（CNAME + 证书都绿）后，到企业微信后台「接收消息 → 设置 API 接收」，URL 填：
 
    ```
-   https://springboot-kgxg-53361-9-1318542298.sh.run.tcloudbase.com/callback
+   https://wecom.littleant.com/callback
    ```
 
    Token / EncodingAESKey 同 `.env`，保存时应显示「验证成功」。

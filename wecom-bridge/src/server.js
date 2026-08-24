@@ -310,8 +310,10 @@ const server = app.listen(PORT, () => {
   console.log(`  本地服务:  http://localhost:${PORT}`)
   console.log(`  回调地址:  http://localhost:${PORT}/callback`)
   console.log(`  健康检查: http://localhost:${PORT}/health`)
-  if (config.ngrokDomain) {
-    console.log(`  公网回调:  https://${config.ngrokDomain}/callback`)
+  if (config.publicBaseUrl) {
+    console.log(`  企微回调:  ${config.publicBaseUrl.replace(/\/$/, '')}/callback`)
+  } else {
+    console.log(`  企微回调:  <你的企业域名>/callback  (设 PUBLIC_BASE_URL 可在此显示)`)
   }
   console.log(`  待处理消息: ${messageQueue.length} 条`)
   console.log('========================================')
