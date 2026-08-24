@@ -1,0 +1,16 @@
+# 版本控制 / IDE
+.git
+.idea
+**/.idea
+*.iml
+
+# 构建产物
+**/target
+python/venv
+**/node_modules
+*.log
+*.class
+
+# 桥: 不把本地依赖和密钥打进镜像 (依赖在镜像内 npm install, 密钥由云托管注入)
+wecom-bridge/node_modules
+wecom-bridge/.env

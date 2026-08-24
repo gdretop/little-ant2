@@ -15,46 +15,33 @@ COPY settings.xml pom.xml /app/
 # 自定义settings.xml, 选用国内镜像源以提高下载速度
 RUN mvn -s /app/settings.xml -f /app/pom.xml clean package
 
-# 自定义镜像
+# 自定义镜像 (基于你已有的基础镜像, 内含 JRE8 + python 环境)
 FROM ccr.ccs.tencentyun.com/little-ant2/little-ant:basic1.0_221228
+
+# ===== 新增: 安装 Node.js (官方二进制, 免 apt, 兼容任意 glibc Linux) =====
+# 用二进制 tarball 而非 apt, 避免依赖基础镜像的包管理器, 构建更稳。
+ENV NODE_VERSION=18.20.4
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" -o /tmp/node.tar.gz \
+    && tar -xzf /tmp/node.tar.gz -C /usr/local --strip-components=1 \
+    && rm -f /tmp/node.tar.gz \
+    && node --version && npm --version
+
 COPY python /home/root/python
 COPY --from=build /app/target/*.jar /home/root/java
-EXPOSE 80
-CMD ["java", "-Duser.timezone=GMT+08","-jar", "/home/root/java/little-ant-web-1.0-SNAPSHOT-executable.jar"]
 
-# 选择运行时基础镜像
-#FROM alpine:3.13
-## 容器默认时区为UTC，如需使用上海时间请启用以下时区设置命令
-#RUN apk add tzdata && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
-## 使用 HTTPS 协议访问容器云调用证书安装
-#RUN apk add ca-certificates
-#
-## 安装依赖包，如需其他依赖包，请到alpine依赖包管理(https://pkgs.alpinelinux.org/packages?name=php8*imagick*&branch=v3.13)查找。
-## 选用国内镜像源以提高下载速度
-#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tencent.com/g' /etc/apk/repositories \
-#    && apk add --update --no-cache openjdk8-jre-base \
-#    && rm -f /var/cache/apk/*
-#WORKDIR /app
-#RUN mkdir /home/root \
-#    && mkdir /home/root/java \
-#    && mkdir /home/root/logs \
-#    && mkdir /home/root/python
-## 指定运行时的工作目录
-##RUN mkdir -p /app
-##WORKDIR /app
-#RUN apk add --update ttf-dejavu fontconfig
-#RUN rm -rf /var/cache/apk/*
-## 刷新字体
-#RUN mkfontscale && mkfontdir && fc-cache
-## 将构建产物jar包拷贝到运行时目录中
-#COPY python /home/root/python
-#COPY --from=build /app/target/*.jar /home/root/java
-#
-## 暴露端口
-## 此处端口必须与「服务设置」-「流水线」以及「手动上传代码包」部署时填写的端口一致，否则会部署失败。
-#EXPOSE 80
-#
-## 执行启动命令.
-## 写多行独立的CMD命令是错误写法！只有最后一行CMD命令会被执行，之前的都会被忽略，导致业务报错。
-## 请参考[Docker官方文档之CMD命令](https://docs.docker.com/engine/reference/builder/#cmd)
-#CMD ["java", "-Duser.timezone=GMT+08","-jar", "/home/root/java/little-ant-web-1.0-SNAPSHOT-executable.jar"]
+# ===== 新增: WeCom 反向隧道桥 (Node.js) =====
+COPY wecom-bridge /home/root/wecom-bridge
+WORKDIR /home/root/wecom-bridge
+# --omit=dev 只装运行时依赖; 这里仍装全部以便后续排障/热更
+RUN npm install --omit=dev
+WORKDIR /
+
+# 容器启动脚本: 同容器拉起 Java(8080) + 桥 server/worker(80, 边缘反向代理到 Java)
+COPY start-container.sh /home/root/start-container.sh
+RUN chmod +x /home/root/start-container.sh
+
+# 云托管只暴露一个端口: 80 (= 桥, 同时代理原 Java 服务)
+EXPOSE 80
+
+# 注意: 不要写多行 CMD, 只有最后一行生效。统一用启动脚本。
+CMD ["/home/root/start-container.sh"]

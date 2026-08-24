@@ -71,3 +71,7 @@ jspm_packages/
 /eclipse
 #python/manual_test/**
 #python/manual_test/*
+
+# WeCom 桥: 忽略本地依赖与密钥 (依赖在镜像内安装, 密钥由云托管注入)
+wecom-bridge/node_modules
+wecom-bridge/.env
