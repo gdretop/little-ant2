@@ -33,19 +33,35 @@ export const config = {
 
 export function validateConfig() {
   const { corpid, agentid, secret, token, encodingAESKey } = config.wecom
-  const missing = []
-  if (!corpid) missing.push('WECOM_CORPID')
-  if (!agentid) missing.push('WECOM_AGENTID')
-  if (!secret) missing.push('WECOM_SECRET')
-  if (!token) missing.push('WECOM_TOKEN')
-  if (!encodingAESKey) missing.push('WECOM_ENCODING_AES_KEY')
-  if (missing.length > 0) {
-    console.error(`[ERROR] 缺少配置: ${missing.join(', ')}`)
-    console.error('请复制 .env.example 为 .env 并填写企业微信配置')
+  const feishuEnabled = !!process.env.FEISHU_APP_ID && !!process.env.FEISHU_APP_SECRET
+
+  // 至少配置一种入口 (企业微信 或 飞书)
+  if (!corpid && !feishuEnabled) {
+    console.error('[ERROR] 未配置任何入口: 需要企业微信(WECOM_*) 或 飞书(FEISHU_APP_ID/SECRET) 至少其一')
     process.exit(1)
   }
-  if (encodingAESKey.length !== 43) {
-    console.error('[ERROR] WECOM_ENCODING_AES_KEY 应为 43 个字符')
-    process.exit(1)
+
+  // 仅当配置了企业微信时, 才校验其必填项
+  if (corpid) {
+    const missing = []
+    if (!agentid) missing.push('WECOM_AGENTID')
+    if (!secret) missing.push('WECOM_SECRET')
+    if (!token) missing.push('WECOM_TOKEN')
+    if (!encodingAESKey) missing.push('WECOM_ENCODING_AES_KEY')
+    if (missing.length > 0) {
+      console.error(`[ERROR] 缺少企业微信配置: ${missing.join(', ')}`)
+      process.exit(1)
+    }
+    if (encodingAESKey.length !== 43) {
+      console.error('[ERROR] WECOM_ENCODING_AES_KEY 应为 43 个字符')
+      process.exit(1)
+    }
+    console.log('[config] 企业微信入口: 已启用')
+  } else {
+    console.log('[config] 企业微信入口: 未配置 (跳过校验)')
+  }
+
+  if (feishuEnabled) {
+    console.log('[config] 飞书入口: 已启用 (长连接收消息, 无需域名)')
   }
 }

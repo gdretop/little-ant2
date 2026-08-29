@@ -9,6 +9,7 @@
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.24.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.7.0",
     "dotenv": "^16.4.0",

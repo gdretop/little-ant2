@@ -23,8 +23,16 @@ BRIDGE_SRV=$!
 node src/worker.js &
 BRIDGE_WRK=$!
 
+# 3) 飞书入口 (长连接收消息, 免域名) —— 仅当配置了 FEISHU_APP_ID 才启动
+FEISHU_PID=""
+if [ -n "$FEISHU_APP_ID" ] && [ -n "$FEISHU_APP_SECRET" ]; then
+  echo "[start] 飞书入口 (长连接模式, 免域名)"
+  node src/feishu-ingest.js &
+  FEISHU_PID=$!
+fi
+
 # 转发终止信号给子进程
-trap "kill -TERM $JAVA_PID $BRIDGE_SRV $BRIDGE_WRK 2>/dev/null" TERM INT
+trap "kill -TERM $JAVA_PID $BRIDGE_SRV $BRIDGE_WRK $FEISHU_PID 2>/dev/null" TERM INT
 
 # 保持容器存活: 任一进程退出即结束, 交由平台重启
 wait -n
