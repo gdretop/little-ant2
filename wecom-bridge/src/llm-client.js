@@ -5,6 +5,8 @@
 // worker(企微) 与 dingtalk-ingest(钉钉) 共用此模块, 保证行为一致。
 import axios from 'axios'
 import { spawn } from 'child_process'
+import { existsSync } from 'fs'
+import path from 'path'
 import { config } from './config.js'
 import { requestLLM, tunnelConnected } from './tunnel-server.js'
 
@@ -41,6 +43,37 @@ export const SYSTEM_PROMPT = `你是一个名为 WorkBuddy 的个人 AI 助手�
 // 通过子进程调用 `codebuddy --print "<prompt>"`, 输出即最终结果。
 // 相比 Ollama: 具备工具能力(读写文件/执行命令/调连接器), 但更慢。
 
+// ⚠️ 关键坑: codebuddy 脚本首行是 `#!/usr/bin/env node`。
+// 本服务由 launchd 启动时 PATH 是最小化的(/usr/bin:/bin:/usr/sbin:/sbin),
+// 找不到用户安装的 node → 直接 spawn 脚本会 exit=127 "env: node: No such file or directory"。
+// 因此必须显式用 node 的绝对路径来启动脚本, 并把 node 所在目录注入子进程 PATH。
+function resolveNodeBin() {
+  // 优先用当前进程的 node (一定是可用的)
+  if (process.execPath && existsSync(process.execPath)) return process.execPath
+  const candidates = [
+    process.env.WORKBUDDY_NODE,
+    '/Users/littleant/.workbuddy/binaries/node/versions/22.22.2/bin/node',
+    '/opt/homebrew/bin/node',
+    '/usr/local/bin/node',
+    '/usr/bin/node',
+  ].filter(Boolean)
+  for (const c of candidates) if (existsSync(c)) return c
+  return 'node' // 兜底: 交给 PATH
+}
+
+// 构造子进程环境: 补上 node / homebrew 目录, 保证 CLI 内部再次调用 node 也能找到
+function buildChildEnv(nodeBin) {
+  const extra = []
+  if (nodeBin && nodeBin !== 'node') extra.push(path.dirname(nodeBin))
+  extra.push('/opt/homebrew/bin', '/usr/local/bin')
+  const base = process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin'
+  return {
+    ...process.env,
+    PATH: [...new Set([...extra, base].filter(Boolean))].join(':'),
+    HOME: process.env.HOME || '/Users/littleant',
+  }
+}
+
 // CLI 每次是新会话, 需把历史拼进 prompt 才能保持连贯
 function flattenForWorkBuddy(messages, historyTurns) {
   const sys = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n')
@@ -64,14 +97,16 @@ export async function callWorkBuddy(messages, { timeout, cwd } = {}) {
     let out = ''
     let err = ''
     let child
+    const nodeBin = resolveNodeBin()
     try {
-      child = spawn(wb.cli, args, {
+      // 用绝对路径的 node 启动脚本, 避免 launchd 最小 PATH 导致 exit=127
+      child = spawn(nodeBin, [wb.cli, ...args], {
         cwd: cwd || wb.cwd,
-        env: { ...process.env },
+        env: buildChildEnv(nodeBin),
         stdio: ['ignore', 'pipe', 'pipe'],
       })
     } catch (e) {
-      return reject(new Error('WorkBuddy 启动失败: ' + e.message))
+      return reject(new Error(`WorkBuddy 启动失败 (node=${nodeBin}): ${e.message}`))
     }
 
     const timer = setTimeout(() => {
