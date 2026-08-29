@@ -33,11 +33,11 @@ export const config = {
 
 export function validateConfig() {
   const { corpid, agentid, secret, token, encodingAESKey } = config.wecom
-  const feishuEnabled = !!process.env.FEISHU_APP_ID && !!process.env.FEISHU_APP_SECRET
+  const dingtalkEnabled = !!process.env.DINGTALK_CLIENT_ID && !!process.env.DINGTALK_CLIENT_SECRET
 
-  // 至少配置一种入口 (企业微信 或 飞书)
-  if (!corpid && !feishuEnabled) {
-    console.error('[ERROR] 未配置任何入口: 需要企业微信(WECOM_*) 或 飞书(FEISHU_APP_ID/SECRET) 至少其一')
+  // 至少配置一种入口 (企业微信 或 钉钉)
+  if (!corpid && !dingtalkEnabled) {
+    console.error('[ERROR] 未配置任何入口: 需要企业微信(WECOM_*) 或 钉钉(DINGTALK_CLIENT_ID/SECRET) 至少其一')
     process.exit(1)
   }
 
@@ -61,7 +61,7 @@ export function validateConfig() {
     console.log('[config] 企业微信入口: 未配置 (跳过校验)')
   }
 
-  if (feishuEnabled) {
-    console.log('[config] 飞书入口: 已启用 (长连接收消息, 无需域名)')
+  if (dingtalkEnabled) {
+    console.log('[config] 钉钉入口: 已启用 (Stream 模式长连接收消息, 无需域名)')
   }
 }
