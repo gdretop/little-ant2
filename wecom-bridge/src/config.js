@@ -21,6 +21,19 @@ export const config = {
     model: process.env.LLM_MODEL || 'qwen2.5:7b',
     pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS || '3000', 10),
     mode: process.env.LLM_MODE || 'direct', // 'direct' | 'tunnel'
+    // 默认引擎: 'workbuddy' (调 CodeBuddy CLI, 能干活) | 'ollama' (本地模型, 秒回)
+    engine: process.env.LLM_ENGINE || 'workbuddy',
+  },
+  // WorkBuddy (CodeBuddy Code CLI) 引擎配置
+  workbuddy: {
+    cli: process.env.WORKBUDDY_CLI || '/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/bin/codebuddy',
+    timeoutMs: parseInt(process.env.WORKBUDDY_TIMEOUT_MS || '180000', 10),
+    // CLI 执行时的工作目录 (决定它能"看到"和操作哪些文件)
+    cwd: process.env.WORKBUDDY_CWD || process.env.HOME || '/tmp',
+    // 非交互执行需跳过权限确认 (否则会卡住等待输入)
+    skipPermissions: process.env.WORKBUDDY_SKIP_PERMISSIONS !== '0',
+    // CLI 每次都是新会话, 靠拼接最近几轮历史维持对话连贯
+    historyTurns: parseInt(process.env.WORKBUDDY_HISTORY_TURNS || '6', 10),
   },
   // 反向隧道配置 (LLM_MODE=tunnel 时生效)
   tunnel: {

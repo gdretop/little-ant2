@@ -10,7 +10,8 @@
 import 'dotenv/config'
 import { DWClient, TOPIC_ROBOT } from 'dingtalk-stream'
 import axios from 'axios'
-import { callLLM, SYSTEM_PROMPT } from './llm-client.js'
+import { config } from './config.js'
+import { callEngine, SYSTEM_PROMPT } from './llm-client.js'
 
 const CLIENT_ID = process.env.DINGTALK_CLIENT_ID
 const CLIENT_SECRET = process.env.DINGTALK_CLIENT_SECRET
@@ -42,8 +43,14 @@ function truncateUtf8(str, maxBytes) {
 }
 
 // 通过 sessionWebhook 回发 (Stream 模式机器人专用回发通道, 有时效)
+// WorkBuddy 输出可能很长, 超出钉钉限制时截断并提示
 async function replyViaWebhook(sessionWebhook, text) {
-  const safe = truncateUtf8(text, 3000)
+  const raw = String(text)
+  const MAX_BYTES = 3000
+  let safe = raw
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BYTES) {
+    safe = truncateUtf8(raw, MAX_BYTES - 60) + '\n\n…(内容过长已截断)'
+  }
   try {
     await axios.post(
       sessionWebhook,
@@ -72,22 +79,42 @@ async function handleAsync(msg) {
     return
   }
 
+  // 引擎路由: 默认 WorkBuddy(能干活); 以 /ol 开头则切到本地 Ollama(秒回)
+  // 也支持 /wb 显式指定 WorkBuddy, 便于以后把默认引擎改成 ollama
+  let engine = config.llm.engine || 'workbuddy'
+  let cmdMatch = text.match(/^\/(ol|wb)\s*/i)
+  if (cmdMatch) {
+    engine = cmdMatch[1].toLowerCase() === 'ol' ? 'ollama' : 'workbuddy'
+    text = text.slice(cmdMatch[0].length).trim()
+    if (!text) {
+      await replyViaWebhook(
+        msg.sessionWebhook,
+        engine === 'ollama'
+          ? '已切换到本地模型模式。用法: /ol 你的问题'
+          : '已切换到 WorkBuddy 模式。用法: /wb 你的问题',
+      )
+      return
+    }
+  }
+
   const userId = msg.senderStaffId || msg.senderId || msg.conversationId
   let history = histories.get(userId) || []
   history.push({ role: 'user', content: text })
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history.slice(-MAX_HISTORY)]
 
-  console.log(`[dingtalk] 收到 from=${userId}: "${text}"`)
+  console.log(`[dingtalk] 收到 from=${userId} [${engine}]: "${text}"`)
+  const t0 = Date.now()
   try {
-    const reply = await callLLM(messages)
+    const reply = await callEngine(messages, engine)
     history.push({ role: 'assistant', content: reply })
     if (history.length > MAX_HISTORY * 2) history = history.slice(-MAX_HISTORY * 2)
     histories.set(userId, history)
     await replyViaWebhook(msg.sessionWebhook, reply)
-    console.log(`[dingtalk] 已回复 ${userId}`)
+    console.log(`[dingtalk] 已回复 ${userId} [${engine}] 耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`)
   } catch (e) {
-    console.error('[dingtalk] 处理失败:', e.message)
-    await replyViaWebhook(msg.sessionWebhook, '⚠️ 本地 AI 调用失败: ' + e.message)
+    console.error(`[dingtalk] 处理失败 [${engine}]:`, e.message)
+    const hint = engine === 'workbuddy' ? '\n\n(可加 /ol 前缀改用本地模型)' : ''
+    await replyViaWebhook(msg.sessionWebhook, `⚠️ ${engine === 'workbuddy' ? 'WorkBuddy' : '本地模型'}调用失败: ${e.message}${hint}`)
   }
 }
 
@@ -106,7 +133,10 @@ client.registerCallbackListener(TOPIC_ROBOT, (res) => {
 
 client
   .connect()
-  .then(() => console.log('[dingtalk] Stream 长连接已建立 ✅ (等待钉钉推送消息...)'))
+  .then(() => {
+    console.log('[dingtalk] Stream 长连接已建立 ✅ (等待钉钉推送消息...)')
+    console.log(`[dingtalk] 默认引擎: ${config.llm.engine}  |  /ol <问题>=本地Ollama  /wb <问题>=WorkBuddy`)
+  })
   .catch((e) => {
     console.error('[dingtalk] 连接失败:', e.message)
     process.exit(1)
