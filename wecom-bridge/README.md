@@ -31,6 +31,22 @@
 
 - 适合本机一键联调；免费隧道每次重启地址会变，需回企业微信后台更新回调 URL。
 
+**C. 当前主用 · 钉钉 Stream 入口（免域名，无需企业备案域名）**
+
+```
+钉钉 App → 给机器人发消息 → 钉钉云端
+                                │ WebSocket 长连接(机器人主动外连, 无需公网域名/证书)
+                                ▼
+                        本机 dingtalk-ingest.js (Stream 模式)
+                                │ 调用本机 Ollama (LLM_MODE=direct)
+                                ▼
+                        qwen2.5:7b 生成回复 → 经 sessionWebhook 回发钉钉
+```
+
+- 企业微信回调要求「企业备案域名」（第三方域名会被拒），没有域名时走这条路。
+- 全程**零公网 IP、零域名、零证书、零内网穿透**；AI 算力仍在本机 Ollama。
+- 详见文末 [钉钉入口（免域名·推荐）](#钉钉入口免域名推荐)。
+
 > 下面的「第一至九步」是通用配置（企业微信注册、自建应用、回调、MCP、自动化），与部署方式无关；
 > 末尾「推荐部署：微信云托管 + 反向隧道」专讲方式 A 的上云步骤。
 
@@ -452,7 +468,82 @@ wecom-bridge/
 │   ├── start-container.sh# 容器内: server + worker 同跑
 │   ├── stop.sh           # 停止全部
 │   ├── status.sh         # 查看状态
+│   ├── start-dingtalk.sh # 启动钉钉入口 (终端前台常驻)
+│   ├── dingtalk-ingest.js# (src/) 钉钉 Stream 长连接收消息 + 回发
 │   ├── test-tunnel.mjs   # 本地模拟自测 (验证隧道全链路)
 │   └── frps-setup.sh     # (已弃用) 早期 frp 方案脚本, 留作参考
 └── README.md            # 本文件
 ```
+
+---
+
+## 钉钉入口（免域名·推荐）
+
+当**没有企业备案域名**时（企业微信回调会被「该域名主体为第三方服务商」拒绝），
+用钉钉 Stream 模式作为消息入口：机器人通过 WebSocket **主动外连**钉钉收消息，
+**不需要公网 IP / 域名 / 证书 / 内网穿透**。
+
+### 1. 钉钉开放平台配置（只需做一次）
+
+1. 打开 https://open.dingtalk.com → 进入组织 → **应用开发 → 企业内部开发 → 创建应用**。
+2. 记下 **Client ID（AppKey）** 与 **Client Secret（AppSecret，只显示一次）**。
+3. 左侧 **应用能力 → 添加能力 → 机器人**；机器人配置里**消息接收模式选「Stream 模式」**。
+4. **版本管理与发布 → 确认发布**，可见范围要包含你自己（否则在钉钉里找不到机器人）。
+
+### 2. 配置环境变量
+
+在 `wecom-bridge/.env` 中填写（该文件已被 `.gitignore` 忽略，不会进仓库）：
+
+```bash
+DINGTALK_CLIENT_ID=你的ClientID
+DINGTALK_CLIENT_SECRET=你的ClientSecret
+
+# 本机直连 Ollama (本地运行用 direct; 云端部署才用 tunnel)
+LLM_MODE=direct
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_API_KEY=ollama
+LLM_MODEL=qwen2.5:7b
+```
+
+### 3. 运行
+
+**方式一：桌面一键脚本（推荐）**
+
+- 双击 `~/Desktop/启动钉钉AI机器人.command` → 自动注册为 launchd 常驻服务（开机自启 + 崩溃自动重启），并实时显示日志。
+- 双击 `~/Desktop/停止钉钉AI机器人.command` → 停止并卸载服务。
+
+**方式二：终端前台运行**（关闭窗口即停止）
+
+```bash
+bash scripts/start-dingtalk.sh
+```
+
+**方式三：手动注册 launchd 常驻**
+
+```bash
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.littleant.dingtalk-bot.plist
+# 停止/卸载:
+launchctl bootout  gui/$(id -u) ~/Library/LaunchAgents/com.littleant.dingtalk-bot.plist
+```
+
+启动成功会看到：
+
+```
+connect success
+[dingtalk] Stream 长连接已建立 ✅ (等待钉钉推送消息...)
+```
+
+### 4. 使用
+
+在钉钉里 **工作台 → 你的应用**（或顶部搜索应用名）进入与该机器人的**单聊**窗口，发消息即可收到本机 Ollama 的回复。
+
+> 日志：
+> - launchd 模式：`~/Library/Logs/dingtalk-bot.log`
+> - 终端模式：直接打印在终端
+
+### 5. 已知约束
+
+- **只回复单聊**：代码里 `conversationType === '1'` 才处理，群聊消息会被忽略（防刷屏）。要在群里用需改成「被 @ 才回复」。
+- **回发走 `sessionWebhook`**：该地址有时效，本机 Ollama 秒回足够；若模型很慢导致过期，回发会失败（日志会打印 `[dingtalk] 回发失败`）。
+- **Mac 睡眠会断连**：长连接依赖本机在线，需要 7×24 请设置「防止睡眠」，或把入口部署到云端、改用 `LLM_MODE=tunnel` 经反向隧道调用本机 Ollama。
+- **沙箱内无法常驻**：用 `nohup` 起的进程会随命令结束被回收，请用上面的 launchd / 桌面脚本方式。
