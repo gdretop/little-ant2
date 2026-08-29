@@ -7,6 +7,7 @@
 //   2. 应用能力 -> 添加「机器人」, 消息接收模式选「Stream 模式」
 //   3. 发布应用 (可见范围选自己或全员)
 //   4. 把 Client ID / Client Secret 填入 DINGTALK_CLIENT_ID / DINGTALK_CLIENT_SECRET
+import 'dotenv/config'
 import { DWClient, TOPIC_ROBOT } from 'dingtalk-stream'
 import axios from 'axios'
 import { callLLM, SYSTEM_PROMPT } from './llm-client.js'
