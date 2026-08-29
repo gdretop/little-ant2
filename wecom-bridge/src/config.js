@@ -36,12 +36,12 @@ export const config = {
     historyTurns: parseInt(process.env.WORKBUDDY_HISTORY_TURNS || '6', 10),
     // ===== 模型策略: 默认用免费的, 复杂任务自动升到最高级 =====
     // 账户实测可用: auto / hy4-preview / hy4-preview-x / hy3-preview / hy3-preview-agent / deepseek-v4-pro
-    // 经济档 (日常闲聊/简单问答)
+    // 首选: 经济档 (日常闲聊/简单问答, 用户指定优先 Hy4 preview)
     model: process.env.WORKBUDDY_MODEL || 'hy4-preview',
-    // 旗舰档 (复杂任务/失败重试; -x 为增强版)
+    // 旗舰档 (复杂任务自动升级 /pro 前缀强制使用; -x 为增强版)
     premiumModel: process.env.WORKBUDDY_PREMIUM_MODEL || 'hy4-preview-x',
-    // 最后兜底 (前两者都失败时)
-    fallbackModel: process.env.WORKBUDDY_FALLBACK_MODEL || 'deepseek-v4-pro',
+    // 次选: 首选失败时退到 Hy3 (用户指定"其次 Hy3"; -agent 变体支持工具调用)
+    fallbackModel: process.env.WORKBUDDY_FALLBACK_MODEL || 'hy3-preview-agent',
     // 自动升级开关: '0' 关闭 (则永远只用经济档)
     autoFallback: process.env.WORKBUDDY_AUTO_FALLBACK !== '0',
     // 复杂度自动升级: '0' 关闭 (则只在失败时才升级)

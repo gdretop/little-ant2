@@ -172,10 +172,12 @@ export async function callWorkBuddy(messages, opts = {}) {
   const prompt = flattenForWorkBuddy(messages, wb.historyTurns)
   const primary = pickWorkBuddyModel(messages, opts)
 
-  const chain = [primary]
-  if (wb.premiumModel && !chain.includes(wb.premiumModel)) chain.push(wb.premiumModel)
-  if (wb.fallbackModel && !chain.includes(wb.fallbackModel)) chain.push(wb.fallbackModel)
-  if (!wb.autoFallback) chain.length = 1 // 关闭自动升级则只用首选
+  // 尝试顺序: 首选 → 次选(Hy3) → 旗舰档 (去重后依次降级/升级尝试)
+  // 简单任务: hy4-preview → hy3 → hy4-preview-x
+  // 复杂任务: hy4-preview-x → hy4-preview → hy3
+  const order = [wb.model, wb.fallbackModel, wb.premiumModel].filter(Boolean)
+  const chain = [primary, ...order.filter((m) => m !== primary)]
+  if (!wb.autoFallback) chain.length = 1 // 关闭自动切换则只用首选
 
   let lastErr
   for (let i = 0; i < chain.length; i++) {
