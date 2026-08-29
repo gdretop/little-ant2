@@ -65,7 +65,8 @@ function resolveNodeBin() {
 function buildChildEnv(nodeBin) {
   const extra = []
   if (nodeBin && nodeBin !== 'node') extra.push(path.dirname(nodeBin))
-  extra.push('/opt/homebrew/bin', '/usr/local/bin')
+  // 补上 /usr/sbin /sbin: 否则 CLI 内部调用 ioreg 等系统命令会 "command not found"
+  extra.push('/opt/homebrew/bin', '/usr/local/bin', '/usr/sbin', '/sbin')
   const base = process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin'
   return {
     ...process.env,
@@ -85,11 +86,12 @@ function flattenForWorkBuddy(messages, historyTurns) {
   return `${sys ? sys + '\n\n---\n\n' : ''}以下是你和用户最近的对话:\n${conv}\n\n请回答用户最后一条消息。直接给出回答内容, 不要复述问题, 不要写"助手:"前缀。`
 }
 
-export async function callWorkBuddy(messages, { timeout, cwd } = {}) {
+// 单次调用: 指定模型执行, 返回输出文本
+function runWorkBuddy(prompt, model, { timeout, cwd } = {}) {
   const wb = config.workbuddy
-  const prompt = flattenForWorkBuddy(messages, wb.historyTurns)
   const ms = timeout || wb.timeoutMs
   const args = ['--print', prompt]
+  if (model) args.push('--model', model)
   if (wb.skipPermissions) args.push('--dangerously-skip-permissions')
 
   return new Promise((resolve, reject) => {
@@ -133,6 +135,19 @@ export async function callWorkBuddy(messages, { timeout, cwd } = {}) {
       reject(new Error(`WorkBuddy 无输出 (exit=${code})${err ? ' | ' + err.slice(0, 300) : ''}`))
     })
   })
+}
+
+// 对外入口: 用默认(最省额度)模型执行; 失败/超时时自动升级到备用模型
+export async function callWorkBuddy(messages, opts = {}) {
+  const wb = config.workbuddy
+  const prompt = flattenForWorkBuddy(messages, wb.historyTurns)
+  try {
+    return await runWorkBuddy(prompt, wb.model, opts)
+  } catch (e) {
+    if (!wb.autoFallback || !wb.fallbackModel || wb.fallbackModel === wb.model) throw e
+    console.warn(`[workbuddy] 模型 ${wb.model} 失败 (${e.message}), 自动升级到 ${wb.fallbackModel}`)
+    return await runWorkBuddy(prompt, wb.fallbackModel, opts)
+  }
 }
 
 // 统一调度: engine 为 'workbuddy' 或 'ollama'

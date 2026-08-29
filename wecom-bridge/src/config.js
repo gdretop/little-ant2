@@ -34,6 +34,17 @@ export const config = {
     skipPermissions: process.env.WORKBUDDY_SKIP_PERMISSIONS !== '0',
     // CLI 每次都是新会话, 靠拼接最近几轮历史维持对话连贯
     historyTurns: parseInt(process.env.WORKBUDDY_HISTORY_TURNS || '6', 10),
+    // 模型选择 (计费倍数参考, 越便宜越省额度):
+    //   hy3-preview-agent  x0.04  ← 默认, 最省
+    //   deepseek-v4-flash  x0.06
+    //   deepseek-v4-pro    x0.16
+    //   minimax-m3-play    x0.25
+    //   default            x2.00  (最贵, 是 hy3 的 50 倍)
+    model: process.env.WORKBUDDY_MODEL || 'hy3-preview-agent',
+    // 主模型失败/超时时自动升级到的备用模型 (省额度优先时可用 deepseek-v4-pro)
+    fallbackModel: process.env.WORKBUDDY_FALLBACK_MODEL || 'deepseek-v4-pro',
+    // 设为 '0' 可关闭自动升级
+    autoFallback: process.env.WORKBUDDY_AUTO_FALLBACK !== '0',
   },
   // 反向隧道配置 (LLM_MODE=tunnel 时生效)
   tunnel: {
