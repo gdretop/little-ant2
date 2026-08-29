@@ -11,7 +11,7 @@ import 'dotenv/config'
 import { DWClient, TOPIC_ROBOT } from 'dingtalk-stream'
 import axios from 'axios'
 import { config } from './config.js'
-import { callEngine, SYSTEM_PROMPT } from './llm-client.js'
+import { callEngine, pickWorkBuddyModel, SYSTEM_PROMPT } from './llm-client.js'
 
 const CLIENT_ID = process.env.DINGTALK_CLIENT_ID
 const CLIENT_SECRET = process.env.DINGTALK_CLIENT_SECRET
@@ -82,17 +82,20 @@ async function handleAsync(msg) {
   // 引擎路由: 默认 WorkBuddy(能干活); 以 /ol 开头则切到本地 Ollama(秒回)
   // 也支持 /wb 显式指定 WorkBuddy, 便于以后把默认引擎改成 ollama
   let engine = config.llm.engine || 'workbuddy'
-  let cmdMatch = text.match(/^\/(ol|wb)\s*/i)
+  let forcePremium = false
+  const cmdMatch = text.match(/^\/(ol|wb|pro)\s*/i)
   if (cmdMatch) {
-    engine = cmdMatch[1].toLowerCase() === 'ol' ? 'ollama' : 'workbuddy'
+    const cmd = cmdMatch[1].toLowerCase()
+    if (cmd === 'ol') engine = 'ollama'
+    else if (cmd === 'wb') engine = 'workbuddy'
+    else if (cmd === 'pro') { engine = 'workbuddy'; forcePremium = true }
     text = text.slice(cmdMatch[0].length).trim()
     if (!text) {
-      await replyViaWebhook(
-        msg.sessionWebhook,
-        engine === 'ollama'
-          ? '已切换到本地模型模式。用法: /ol 你的问题'
-          : '已切换到 WorkBuddy 模式。用法: /wb 你的问题',
-      )
+      const tip =
+        cmd === 'ol' ? '本地模型模式。用法: /ol 你的问题'
+        : cmd === 'pro' ? '旗舰模型模式(最强, 较慢)。用法: /pro 你的问题'
+        : 'WorkBuddy 模式(自动选模型)。用法: /wb 你的问题'
+      await replyViaWebhook(msg.sessionWebhook, `已切换到${tip}`)
       return
     }
   }
@@ -102,10 +105,13 @@ async function handleAsync(msg) {
   history.push({ role: 'user', content: text })
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history.slice(-MAX_HISTORY)]
 
-  console.log(`[dingtalk] 收到 from=${userId} [${engine}]: "${text}"`)
+  // 记录本次将用哪个模型 (workbuddy 引擎下自动选: 免费档 or 旗舰档)
+  const model =
+    engine === 'workbuddy' ? pickWorkBuddyModel(messages, { forcePremium }) : `ollama/${config.llm.model}`
+  console.log(`[dingtalk] 收到 from=${userId} [${engine}/${model}]: "${text}"`)
   const t0 = Date.now()
   try {
-    const reply = await callEngine(messages, engine)
+    const reply = await callEngine(messages, engine, { forcePremium })
     history.push({ role: 'assistant', content: reply })
     if (history.length > MAX_HISTORY * 2) history = history.slice(-MAX_HISTORY * 2)
     histories.set(userId, history)

@@ -137,22 +137,65 @@ function runWorkBuddy(prompt, model, { timeout, cwd } = {}) {
   })
 }
 
-// 对外入口: 用默认(最省额度)模型执行; 失败/超时时自动升级到备用模型
+// 复杂任务关键词: 命中则用旗舰档 (否则用免费/经济档)
+const PREMIUM_HINTS = [
+  // 分析/设计类
+  '分析', '设计方案', '架构', '技术方案', '总结', '对比', '调研', '研究',
+  '评估', '规划', '策略', '原理', '报告',
+  // 工程类
+  '优化', '重构', '写代码', '实现', '调试', '排查', '定位问题', '报错', '异常', 'bug',
+  '脚本', '函数', '程序', '搭建', '知识库', '数据库', '框架',
+  // 英文
+  'code', 'implement', 'debug', 'analyze', 'design', 'architect', 'refactor', 'optimize',
+]
+
+// 根据任务复杂度选择模型: 免费/经济档 还是 旗舰档
+export function pickWorkBuddyModel(messages, { forcePremium = false } = {}) {
+  const wb = config.workbuddy
+  if (forcePremium) return wb.premiumModel
+  if (!wb.autoEscalate) return wb.model
+
+  const last = [...messages].reverse().find((m) => m.role === 'user')
+  const text = (last?.content || '').trim()
+  // 长文本 → 复杂
+  if (text.length > wb.escalateLength) return wb.premiumModel
+  // 含复杂度关键词 / 代码块 → 复杂
+  const lower = text.toLowerCase()
+  if (lower.includes('```')) return wb.premiumModel
+  if (PREMIUM_HINTS.some((h) => lower.includes(h.toLowerCase()))) return wb.premiumModel
+  return wb.model
+}
+
+// 对外入口: 自动选模型; 失败时沿「所选模型 → 旗舰档 → 兜底」逐级升级
 export async function callWorkBuddy(messages, opts = {}) {
   const wb = config.workbuddy
   const prompt = flattenForWorkBuddy(messages, wb.historyTurns)
-  try {
-    return await runWorkBuddy(prompt, wb.model, opts)
-  } catch (e) {
-    if (!wb.autoFallback || !wb.fallbackModel || wb.fallbackModel === wb.model) throw e
-    console.warn(`[workbuddy] 模型 ${wb.model} 失败 (${e.message}), 自动升级到 ${wb.fallbackModel}`)
-    return await runWorkBuddy(prompt, wb.fallbackModel, opts)
+  const primary = pickWorkBuddyModel(messages, opts)
+
+  const chain = [primary]
+  if (wb.premiumModel && !chain.includes(wb.premiumModel)) chain.push(wb.premiumModel)
+  if (wb.fallbackModel && !chain.includes(wb.fallbackModel)) chain.push(wb.fallbackModel)
+  if (!wb.autoFallback) chain.length = 1 // 关闭自动升级则只用首选
+
+  let lastErr
+  for (let i = 0; i < chain.length; i++) {
+    const model = chain[i]
+    try {
+      const out = await runWorkBuddy(prompt, model, opts)
+      if (i > 0) console.warn(`[workbuddy] ✅ 已升级到 ${model} 完成`)
+      return out
+    } catch (e) {
+      lastErr = e
+      const next = i < chain.length - 1 ? `, 尝试升级到 ${chain[i + 1]}` : ' (已无更高可用)'
+      console.warn(`[workbuddy] 模型 ${model} 失败 (${e.message})${next}`)
+    }
   }
+  throw lastErr
 }
 
 // 统一调度: engine 为 'workbuddy' 或 'ollama'
-export async function callEngine(messages, engine) {
-  if (engine === 'workbuddy') return await callWorkBuddy(messages)
+export async function callEngine(messages, engine, opts = {}) {
+  if (engine === 'workbuddy') return await callWorkBuddy(messages, opts)
   return await callLLM(messages)
 }
 

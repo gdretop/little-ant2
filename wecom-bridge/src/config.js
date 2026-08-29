@@ -34,17 +34,20 @@ export const config = {
     skipPermissions: process.env.WORKBUDDY_SKIP_PERMISSIONS !== '0',
     // CLI 每次都是新会话, 靠拼接最近几轮历史维持对话连贯
     historyTurns: parseInt(process.env.WORKBUDDY_HISTORY_TURNS || '6', 10),
-    // 模型选择 (计费倍数参考, 越便宜越省额度):
-    //   hy3-preview-agent  x0.04  ← 默认, 最省
-    //   deepseek-v4-flash  x0.06
-    //   deepseek-v4-pro    x0.16
-    //   minimax-m3-play    x0.25
-    //   default            x2.00  (最贵, 是 hy3 的 50 倍)
-    model: process.env.WORKBUDDY_MODEL || 'hy3-preview-agent',
-    // 主模型失败/超时时自动升级到的备用模型 (省额度优先时可用 deepseek-v4-pro)
+    // ===== 模型策略: 默认用免费的, 复杂任务自动升到最高级 =====
+    // 账户实测可用: auto / hy4-preview / hy4-preview-x / hy3-preview / hy3-preview-agent / deepseek-v4-pro
+    // 经济档 (日常闲聊/简单问答)
+    model: process.env.WORKBUDDY_MODEL || 'hy4-preview',
+    // 旗舰档 (复杂任务/失败重试; -x 为增强版)
+    premiumModel: process.env.WORKBUDDY_PREMIUM_MODEL || 'hy4-preview-x',
+    // 最后兜底 (前两者都失败时)
     fallbackModel: process.env.WORKBUDDY_FALLBACK_MODEL || 'deepseek-v4-pro',
-    // 设为 '0' 可关闭自动升级
+    // 自动升级开关: '0' 关闭 (则永远只用经济档)
     autoFallback: process.env.WORKBUDDY_AUTO_FALLBACK !== '0',
+    // 复杂度自动升级: '0' 关闭 (则只在失败时才升级)
+    autoEscalate: process.env.WORKBUDDY_AUTO_ESCALATE !== '0',
+    // 超过此长度(字符)视为复杂任务, 自动用旗舰档
+    escalateLength: parseInt(process.env.WORKBUDDY_ESCALATE_LENGTH || '200', 10),
   },
   // 反向隧道配置 (LLM_MODE=tunnel 时生效)
   tunnel: {
