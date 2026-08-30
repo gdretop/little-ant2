@@ -5,7 +5,7 @@
 // worker(企微) 与 dingtalk-ingest(钉钉) 共用此模块, 保证行为一致。
 import axios from 'axios'
 import { spawn } from 'child_process'
-import { existsSync } from 'fs'
+import fs, { existsSync } from 'fs'
 import path from 'path'
 import { config } from './config.js'
 import { requestLLM, tunnelConnected } from './tunnel-server.js'
@@ -38,6 +38,65 @@ export const SYSTEM_PROMPT = `你是一个名为 WorkBuddy 的个人 AI 助手�
 - 适合手机屏幕阅读：多用换行和短句，不要使用 Markdown 标题(#)和过宽表格
 - 如果任务需要，可以给出代码片段、列表、要点
 - 遇到无法完成的，诚实说明并给出替代建议`
+
+// ===== ant-harness 工作区感知 =====
+// 让 WorkBuddy 引擎(有文件工具能力) 知道 ant-harness 里有哪些可复用 skills 与 knowledge,
+// 在用户问题涉及本地知识/技能时主动查阅并按步骤执行。
+function readFrontmatterField(file, field) {
+  try {
+    const txt = fs.readFileSync(file, 'utf8')
+    const m = txt.match(new RegExp('^' + field + ':\\s*(.+)$', 'm'))
+    return m ? m[1].trim().replace(/^["']|["']$/g, '') : ''
+  } catch {
+    return ''
+  }
+}
+
+let _workspaceInventory = null
+function getWorkspaceInventory() {
+  if (_workspaceInventory) return _workspaceInventory
+  const root = config.workbuddy.workspaceRoot
+  const parts = []
+  const skillsDir = path.join(root, 'skills')
+  const knowledgeDir = path.join(root, 'knowledge')
+  if (fs.existsSync(skillsDir)) {
+    const skills = fs
+      .readdirSync(skillsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => {
+        const sk = path.join(skillsDir, d.name, 'SKILL.md')
+        const desc = fs.existsSync(sk) ? readFrontmatterField(sk, 'description') : ''
+        return `- skills/${d.name}${desc ? '：' + desc : ''}`
+      })
+    if (skills.length) parts.push('【可复用技能 skills/】\n' + skills.join('\n'))
+  }
+  if (fs.existsSync(knowledgeDir)) {
+    const topics = fs
+      .readdirSync(knowledgeDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+    if (topics.length) parts.push('【知识库 knowledge/】\n' + topics.map((t) => `- ${t}`).join('\n'))
+  }
+  _workspaceInventory = parts.join('\n\n')
+  return _workspaceInventory
+}
+
+// 每次调用 WorkBuddy 时附在 prompt 末尾, 让它"懂"有哪些本地技能/知识可用
+export const WORKBUDDY_CONTEXT = (() => {
+  const root = config.workbuddy.workspaceRoot
+  const inv = getWorkspaceInventory()
+  return `你当前运行在个人工作区 ant-harness (${root}) 下。
+该工作区维护了一套可复用的【技能库 skills/】与【知识库 knowledge/】，并有一个总索引文件 workspace-tree。
+当用户的问题涉及这些已有知识、技能，或可在此工作区完成的任务时，请：
+1. 先用 Read 工具查看 ${root}/workspace-tree 了解整体结构；
+2. 查看对应的 skills/<名称>/SKILL.md 或 knowledge/<主题>/ 下的文件，理解可用资源与步骤；
+3. 按技能文档的步骤执行（如调用命令、读写文件、发钉钉通知等）；
+4. 若用户只是闲聊或问题与本地知识无关，正常回答即可，无需强制查阅。
+
+当前工作区可用资源清单：
+${inv || '(暂无)'}
+（注意：以上清单在机器人进程启动时生成，若你新增了技能/知识，请提示用户重启机器人以刷新本清单。）`
+})()
 
 // ===== WorkBuddy (CodeBuddy Code CLI) 引擎 =====
 // 通过子进程调用 `codebuddy --print "<prompt>"`, 输出即最终结果。
@@ -169,7 +228,7 @@ export function pickWorkBuddyModel(messages, { forcePremium = false } = {}) {
 // 对外入口: 自动选模型; 失败时沿「所选模型 → 旗舰档 → 兜底」逐级升级
 export async function callWorkBuddy(messages, opts = {}) {
   const wb = config.workbuddy
-  const prompt = flattenForWorkBuddy(messages, wb.historyTurns)
+  const prompt = flattenForWorkBuddy(messages, wb.historyTurns) + '\n\n' + WORKBUDDY_CONTEXT
   const primary = pickWorkBuddyModel(messages, opts)
 
   // 尝试顺序: 首选 → 次选(Hy3) → 旗舰档 (去重后依次降级/升级尝试)

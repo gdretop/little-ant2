@@ -28,8 +28,11 @@ export const config = {
   workbuddy: {
     cli: process.env.WORKBUDDY_CLI || '/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/bin/codebuddy',
     timeoutMs: parseInt(process.env.WORKBUDDY_TIMEOUT_MS || '180000', 10),
-    // CLI 执行时的工作目录 (决定它能"看到"和操作哪些文件)
-    cwd: process.env.WORKBUDDY_CWD || process.env.HOME || '/tmp',
+    // CLI 执行时的工作目录: 设为 ant-harness, 让 WorkBuddy 引擎能"看到"并读取
+    // 该工作区下的 skills/(可复用技能) 与 knowledge/(知识库), 从而懂有哪些资源可用
+    cwd: process.env.WORKBUDDY_CWD || '/Users/littleant/Project/ant-harness',
+    // ant-harness 个人知识库/技能库根目录 (供工作区感知清单使用, 默认与 cwd 一致)
+    workspaceRoot: process.env.WORKBUDDY_WORKSPACE || '/Users/littleant/Project/ant-harness',
     // 非交互执行需跳过权限确认 (否则会卡住等待输入)
     skipPermissions: process.env.WORKBUDDY_SKIP_PERMISSIONS !== '0',
     // CLI 每次都是新会话, 靠拼接最近几轮历史维持对话连贯
